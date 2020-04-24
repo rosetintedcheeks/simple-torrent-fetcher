@@ -7,6 +7,7 @@ import yaml
 from datetime import datetime, timedelta
 
 # unsafe loader doesn't matter probably
+# TODO: probably should fix this
 yaml.warnings({'YAMLLoadWarning': False})
 
 url = ""
@@ -65,10 +66,9 @@ for show in shows:
                 matched.close()
                 log = open(home + "scheduler.log", "a")
                 logtitle = feed.entries[item]["title"][int(show['tindex'][0]):int(show['tindex'][1])]
-                logtime = datetime.now()#? - timedelta(hours=4)
+                logtime = datetime.now()
                 logline = logtime.strftime("%x %X") + ": " + logtitle + "\n"
                 if not auto:
                     logline = "M " + logline
                 log.write(logline)
-                #log.write(time.asctime(time.localtime()) + ": " +feed.entries[item]["title"] + " was matched\n")
                 log.close()
