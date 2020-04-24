@@ -1,0 +1,15 @@
+---
+#RSS feed url
+url: ""
+#the path of the scheduler and the required files
+home: ""
+#---
+#regex: ''
+#tindex:
+#- ''
+#- ''
+#---
+#regex: ''
+#tindex:
+#- ''
+#- ''

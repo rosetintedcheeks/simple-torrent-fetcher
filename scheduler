@@ -1,0 +1,74 @@
+#!/usr/bin/python
+import sys
+import feedparser
+import re
+import requests
+import yaml
+from datetime import datetime, timedelta
+
+# unsafe loader doesn't matter probably
+yaml.warnings({'YAMLLoadWarning': False})
+
+url = ""
+regexroot = ""
+home = ""
+linenum = 0
+shows = []
+auto = False
+configfile="scheduler.yaml"
+
+if "-a" in sys.argv:
+    auto = True
+for k,v in enumerate(sys.argv):
+    if v == "-a":
+        auto = True
+    if v == "--config":
+        configfile=sys.argv[k+1]
+    if v == "-h":
+        print("--config [config_file]")
+        exit()
+
+with open(home + configfile, "r") as cf:
+    i = False
+    for doc in yaml.load_all(cf.read()):
+        if(not i):
+            i = True
+            url = doc['url']
+            home = doc['home']
+        else:
+            shows.append(doc)
+
+print(shows)
+feedreq = requests.get(url)
+feedtext = feedreq.text
+feed = feedparser.parse(feedtext)
+for show in shows:
+    matched = open(home + "matched.txt", "r")
+    for match in matched:
+        if(match == (show['regex']+"\n")):
+            show['regex'] = ""
+    matched.close()
+    if(show['regex'] != ""):
+        showre = re.compile(show['regex'])
+        for item in range(len(feed.entries)):
+            match = showre.fullmatch(feed.entries[item]["title"])
+            if(match != None):
+                start = feed.entries[item]["description"].find("http")
+                end = feed.entries[item]["description"][start:].find("\"")
+                req = requests.get(feed.entries[item]["description"][start:start+end])
+                torr = open(home + "watch/" + feed.entries[item]["title"] + ".torrent", "wb")
+                torrbytes = bytearray(req.content)
+                torr.write(torrbytes)
+                torr.close()
+                matched = open(home + "matched.txt", "a")
+                matched.write(show['regex'] + "\n")
+                matched.close()
+                log = open(home + "scheduler.log", "a")
+                logtitle = feed.entries[item]["title"][int(show['tindex'][0]):int(show['tindex'][1])]
+                logtime = datetime.now()#? - timedelta(hours=4)
+                logline = logtime.strftime("%x %X") + ": " + logtitle + "\n"
+                if not auto:
+                    logline = "M " + logline
+                log.write(logline)
+                #log.write(time.asctime(time.localtime()) + ": " +feed.entries[item]["title"] + " was matched\n")
+                log.close()
