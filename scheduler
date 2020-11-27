@@ -51,13 +51,11 @@ for show in shows:
     matched.close()
     if(show['regex'] != ""):
         showre = re.compile(show['regex'])
-        for item in range(len(feed.entries)):
-            match = showre.fullmatch(feed.entries[item]["title"])
+        for item in feed.entries:
+            match = showre.fullmatch(item["title"])
             if(match != None):
-                start = feed.entries[item]["description"].find("http")
-                end = feed.entries[item]["description"][start:].find("\"")
-                req = requests.get(feed.entries[item]["description"][start:start+end])
-                torr = open(home + "watch/" + feed.entries[item]["title"] + ".torrent", "wb")
+                req = requests.get(item.enclosures[0]['href'])
+                torr = open(home + "watch/" + item["title"] + ".torrent", "wb")
                 torrbytes = bytearray(req.content)
                 torr.write(torrbytes)
                 torr.close()
@@ -65,7 +63,7 @@ for show in shows:
                 matched.write(show['regex'] + "\n")
                 matched.close()
                 log = open(home + "scheduler.log", "a")
-                logtitle = feed.entries[item]["title"][int(show['tindex'][0]):int(show['tindex'][1])]
+                logtitle = item["title"][int(show['tindex'][0]):int(show['tindex'][1])]
                 logtime = datetime.now()
                 logline = logtime.strftime("%x %X") + ": " + logtitle + "\n"
                 if not auto:
