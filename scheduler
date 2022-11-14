@@ -28,6 +28,8 @@ configfile = "scheduler.yaml"
 config_base = "config_files"
 verbose = False
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 for k, v in enumerate(sys.argv):
     if v == "-a":
         auto = True
