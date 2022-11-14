@@ -24,22 +24,18 @@ regexroot = ""
 linenum = 0
 shows = []
 auto = False
-configfile = "config_files/scheduler.yaml"
-namechange = True
+configfile = "scheduler.yaml"
+config_base = "config_files"
 verbose = False
 
 for k, v in enumerate(sys.argv):
     if v == "-a":
         auto = True
     if v == "--config":
-        configfile = sys.argv[k + 1]
+        configfile = config_base + "/" + sys.argv[k + 1]
     if v == "-h":
         print("--config [config_file]")
         exit()
-    if v == "--linkdir":
-        linkdir = sys.argv[k + 1]
-    if v == "--no-name-change":
-        namechange = False
     if v == "-v":
         verbose = True
 
