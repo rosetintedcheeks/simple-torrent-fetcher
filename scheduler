@@ -35,6 +35,8 @@ for k, v in enumerate(sys.argv):
         auto = True
     if v == "--config":
         configfile = config_base + "/" + sys.argv[k + 1]
+    else:
+        configfile = config_base + "/" + configfile
     if v == "-h":
         print("--config [config_file]")
         exit()
