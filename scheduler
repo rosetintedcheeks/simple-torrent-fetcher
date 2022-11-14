@@ -1,41 +1,58 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 import feedparser
+import libtorrent
+import os
 import re
 import requests
 import yaml
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 # unsafe loader doesn't matter probably
 # TODO: probably should fix this
 yaml.warnings({'YAMLLoadWarning': False})
 
+load_dotenv()
+
 url = ""
 regexroot = ""
-home = ""
+home = os.getenv("SCHEDULE_HOME")
+watchdir = os.getenv("WATCH_DIR")
+showdir = os.getenv("SHOW_DIR")
+linkdir = os.getenv("LINK_DIR")
 linenum = 0
 shows = []
 auto = False
-configfile="scheduler.yaml"
+configfile = "scheduler.yaml"
+namechange = True
+verbose = False
 
 if "-a" in sys.argv:
     auto = True
-for k,v in enumerate(sys.argv):
+for k, v in enumerate(sys.argv):
     if v == "-a":
         auto = True
     if v == "--config":
-        configfile=sys.argv[k+1]
+        configfile = sys.argv[k + 1]
     if v == "-h":
         print("--config [config_file]")
         exit()
+    if v == "--linkdir":
+        linkdir = sys.argv[k + 1]
+    if v == "--no-name-change":
+        namechange = False
+    if v == "-v":
+        verbose = True
 
 with open(home + configfile, "r") as cf:
     i = False
-    for doc in yaml.load_all(cf.read()):
-        if(not i):
+    for doc in yaml.load_all(cf.read(), Loader=yaml.Loader):
+        if not i:
             i = True
             url = doc['url']
             home = doc['home']
+            watchdir = doc['watchdir']
         else:
             shows.append(doc)
 
@@ -43,27 +60,51 @@ print(shows)
 feedreq = requests.get(url)
 feedtext = feedreq.text
 feed = feedparser.parse(feedtext)
+linklist = []
 for show in shows:
     matched = open(home + "matched.txt", "r")
     for match in matched:
-        if(match == (show['regex']+"\n")):
+        if match == (show['regex'] + "\n"):
             show['regex'] = ""
     matched.close()
-    if(show['regex'] != ""):
+    if show['regex'] != "":
         showre = re.compile(show['regex'])
         for item in feed.entries:
             match = showre.fullmatch(item["title"])
-            if(match != None):
-                req = requests.get(item.enclosures[0]['href'])
-                torr = open(home + "watch/" + item["title"] + ".torrent", "wb")
+            if match is not None:
+                if configfile == "scheduler.yaml":
+                    req = requests.get(item.enclosures[0]['href'])  # Fetch torrent
+                else:
+                    req = requests.get(item.link)  # Fetch in torrent another way xd (for tl)
+                tname = home + watchdir + "/" + item["title"] + ".torrent"
+                torr = open(tname, "wb")
                 torrbytes = bytearray(req.content)
-                torr.write(torrbytes)
+                torr.write(torrbytes)  # Write torrent
                 torr.close()
+                fname = libtorrent.torrent_info(tname).files().file_name(0)  # Get name of file
+                fpath = showdir + fname  # Path of file
+                if 'sname' in show:
+                    ldir = linkdir + show['sname']  # File will be linked in here
+                    if not os.path.isdir(ldir):
+                        os.mkdir(ldir)
+                    if show['change'] != "false":
+                        if 'nindex' in show:  # Horrible last resort, could use item title instead
+                            enum = int(fname[int(show['nindex'][0]):int(show['nindex'][1])])
+                            if 'nsubtract' in show:
+                                enum -= int(show['nsubtract'])
+                            fname = 's' + show['season'] + 'e' + str(enum) + '.mkv'  # :)
+                    try:
+                        os.symlink(fpath, ldir + '/' + fname)
+                    except FileExistsError:
+                        pass
                 matched = open(home + "matched.txt", "a")
                 matched.write(show['regex'] + "\n")
                 matched.close()
                 log = open(home + "scheduler.log", "a")
-                logtitle = item["title"][int(show['tindex'][0]):int(show['tindex'][1])]
+                try:
+                    logtitle = item["title"][int(show['tindex'][0]):int(show['tindex'][1])]
+                except ValueError:
+                    logtitle = item["title"][int(show['tindex'][0]):]
                 logtime = datetime.now()
                 logline = logtime.strftime("%x %X") + ": " + logtitle + "\n"
                 if not auto:
