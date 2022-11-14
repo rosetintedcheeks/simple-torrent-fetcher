@@ -1,0 +1,18 @@
+---
+#RSS feed url
+url: ""
+watchdir: ""
+linkeddir: ""
+home: ""
+showdir: ""
+---
+regex: ''
+tindex:
+- ''
+- ''
+sname: ''
+#---
+#regex: ''
+#tindex:
+#- ''
+#- ''

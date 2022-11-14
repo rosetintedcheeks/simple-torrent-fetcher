@@ -8,27 +8,23 @@ import feedparser
 import libtorrent
 import requests
 import yaml
-from dotenv import load_dotenv
 
 # unsafe loader doesn't matter probably
 # TODO: probably should fix this
 yaml.warnings({'YAMLLoadWarning': False})
 
-load_dotenv()
-
 url = ""
 watchdir = ""
+linkdir = ""
+home = ""
+showdir = ""
 
 regexroot = ""
-
-home = os.getenv("SCHEDULE_HOME")
-showdir = os.getenv("SHOW_DIR")
-linkdir = os.getenv("LINK_DIR")
 
 linenum = 0
 shows = []
 auto = False
-configfile = "scheduler.yaml"
+configfile = "config_files/scheduler.yaml"
 namechange = True
 verbose = False
 
@@ -54,6 +50,7 @@ with open(home + configfile, "r") as cf:
             i = True
             url = doc['url']
             watchdir = doc['watchdir']
+            linkdir = doc['watchdir']
         else:
             shows.append(doc)
 
