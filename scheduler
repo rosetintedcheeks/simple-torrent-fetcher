@@ -1,13 +1,14 @@
 #!/usr/bin/python3
-import sys
-import feedparser
-import libtorrent
 import os
 import re
+import sys
+from datetime import datetime
+
+import feedparser
+import libtorrent
 import requests
 import yaml
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 
 # unsafe loader doesn't matter probably
 # TODO: probably should fix this
@@ -16,11 +17,14 @@ yaml.warnings({'YAMLLoadWarning': False})
 load_dotenv()
 
 url = ""
+watchdir = ""
+
 regexroot = ""
+
 home = os.getenv("SCHEDULE_HOME")
-watchdir = os.getenv("WATCH_DIR")
 showdir = os.getenv("SHOW_DIR")
 linkdir = os.getenv("LINK_DIR")
+
 linenum = 0
 shows = []
 auto = False
@@ -28,8 +32,6 @@ configfile = "scheduler.yaml"
 namechange = True
 verbose = False
 
-if "-a" in sys.argv:
-    auto = True
 for k, v in enumerate(sys.argv):
     if v == "-a":
         auto = True
@@ -51,7 +53,6 @@ with open(home + configfile, "r") as cf:
         if not i:
             i = True
             url = doc['url']
-            home = doc['home']
             watchdir = doc['watchdir']
         else:
             shows.append(doc)
@@ -72,29 +73,42 @@ for show in shows:
         for item in feed.entries:
             match = showre.fullmatch(item["title"])
             if match is not None:
-                if configfile == "scheduler.yaml":
-                    req = requests.get(item.enclosures[0]['href'])  # Fetch torrent
-                else:
-                    req = requests.get(item.link)  # Fetch in torrent another way xd (for tl)
+                try:
+                    torrent_url = item.enclosures[0]['href']
+                except IndexError:  # Try this if we fail TODO: make a function out of this or something
+                    torrent_url = item.link
+                req = requests.get(torrent_url)
+                if verbose:
+                    print("link from rss feed: " + torrent_url)
                 tname = home + watchdir + "/" + item["title"] + ".torrent"
+                if verbose:
+                    print("name of downloaded torrent: " + tname)
                 torr = open(tname, "wb")
                 torrbytes = bytearray(req.content)
                 torr.write(torrbytes)  # Write torrent
                 torr.close()
                 fname = libtorrent.torrent_info(tname).files().file_name(0)  # Get name of file
+                if verbose:
+                    print("name of the file in the torrent:" + fname)
                 fpath = showdir + fname  # Path of file
                 if 'sname' in show:
                     ldir = linkdir + show['sname']  # File will be linked in here
                     if not os.path.isdir(ldir):
                         os.mkdir(ldir)
-                    if show['change'] != "false":
+                    # TODO: get rid of this and do it in another file
+                    if 'change' in show and show['change'] != "false":
                         if 'nindex' in show:  # Horrible last resort, could use item title instead
                             enum = int(fname[int(show['nindex'][0]):int(show['nindex'][1])])
                             if 'nsubtract' in show:
                                 enum -= int(show['nsubtract'])
                             fname = 's' + show['season'] + 'e' + str(enum) + '.mkv'  # :)
+
+                    link_target = ldir + '/' + fname
+                    if verbose:
+                        print("symlink path: " + fpath)
+                        print("symlink target: " + link_target)
                     try:
-                        os.symlink(fpath, ldir + '/' + fname)
+                        os.symlink(fpath, link_target)
                     except FileExistsError:
                         pass
                 matched = open(home + "matched.txt", "a")
