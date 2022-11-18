@@ -28,6 +28,8 @@ configfile = "scheduler.yaml"
 config_base = "config_files"
 verbose = False
 
+configfile = config_base + "/" + configfile
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 for k, v in enumerate(sys.argv):
@@ -35,8 +37,6 @@ for k, v in enumerate(sys.argv):
         auto = True
     if v == "--config":
         configfile = config_base + "/" + sys.argv[k + 1]
-    else:
-        configfile = config_base + "/" + configfile
     if v == "-h":
         print("--config [config_file]")
         exit()
