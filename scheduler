@@ -24,11 +24,11 @@ regex_root = ""
 line_num = 0
 shows = []
 auto = False
-configfile = "scheduler.yaml"
+config_file = "scheduler.yaml"
 config_base = "config_files"
 verbose = False
 
-configfile = config_base + "/" + configfile
+config_file = config_base + "/" + config_file
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,14 +36,14 @@ for k, v in enumerate(sys.argv):
     if v == "-a":
         auto = True
     if v == "--config":
-        configfile = config_base + "/" + sys.argv[k + 1]
+        config_file = config_base + "/" + sys.argv[k + 1]
     if v == "-h":
         print("--config [config_file]")
         exit()
     if v == "-v":
         verbose = True
 
-with open(home + configfile, "r") as cf:
+with open(home + config_file, "r") as cf:
     i = False
     for doc in yaml.load_all(cf.read(), Loader=yaml.Loader):
         if not i:
@@ -51,10 +51,12 @@ with open(home + configfile, "r") as cf:
             url = doc['url']
             watch_dir = doc['watchdir']
             link_dir = doc['linkeddir']
+            show_dir = doc['showdir']
         else:
             shows.append(doc)
 
-print(shows)
+if verbose:
+    print(shows)
 feed_request = requests.get(url)
 feed_text = feed_request.text
 feed = feedparser.parse(feed_text)
@@ -66,46 +68,46 @@ for show in shows:
             show['regex'] = ""
     matched.close()
     if show['regex'] != "":
-        showre = re.compile(show['regex'])
+        show_regex = re.compile(show['regex'])
         for item in feed.entries:
-            match = showre.fullmatch(item["title"])
+            match = show_regex.fullmatch(item["title"])
             if match is not None:
                 try:
                     torrent_url = item.enclosures[0]['href']
                 except IndexError:  # Try this if we fail TODO: make a function out of this or something
-                    torrent_url = item.link
+                    torrent_url = item['link']
                 req = requests.get(torrent_url)
                 if verbose:
                     print("link from rss feed: " + torrent_url)
-                tname = home + watch_dir + "/" + item["title"] + ".torrent"
+                torrent_name = home + watch_dir + "/" + item["title"] + ".torrent"
                 if verbose:
-                    print("name of downloaded torrent: " + tname)
-                torr = open(tname, "wb")
-                torrbytes = bytearray(req.content)
-                torr.write(torrbytes)  # Write torrent
+                    print("name of downloaded torrent: " + torrent_name)
+                torr = open(torrent_name, "wb")
+                torrent_bytes = bytearray(req.content)
+                torr.write(torrent_bytes)  # Write torrent
                 torr.close()
-                fname = libtorrent.torrent_info(tname).files().file_name(0)  # Get name of file
+                file_name = libtorrent.torrent_info(torrent_name).files().file_name(0)  # Get name of file
                 if verbose:
-                    print("name of the file in the torrent:" + fname)
-                fpath = show_dir + fname  # Path of file
+                    print("name of the file in the torrent:" + file_name)
+                link_target = show_dir + '/' + file_name  # Path of file
                 if 'sname' in show:
-                    ldir = link_dir + '/' + show['sname']  # File will be linked in here
-                    if not os.path.isdir(ldir):
-                        os.mkdir(ldir)
+                    full_link_dir = link_dir + '/' + show['sname']  # File will be linked in here
+                    if not os.path.isdir(full_link_dir):
+                        os.mkdir(full_link_dir)
                     # TODO: get rid of this and do it in another file
                     if 'change' in show and show['change'] != "false":
                         if 'nindex' in show:  # Horrible last resort, could use item title instead
-                            enum = int(fname[int(show['nindex'][0]):int(show['nindex'][1])])
+                            enum = int(file_name[int(show['nindex'][0]):int(show['nindex'][1])])
                             if 'nsubtract' in show:
                                 enum -= int(show['nsubtract'])
-                            fname = 's' + show['season'] + 'e' + str(enum) + '.mkv'  # :)
+                            file_name = 's' + show['season'] + 'e' + str(enum) + '.mkv'  # :)
 
-                    link_target = ldir + '/' + fname
+                    link_file_name = full_link_dir + '/' + file_name
                     if verbose:
-                        print("symlink path: " + fpath)
                         print("symlink target: " + link_target)
+                        print("symlink path: " + link_file_name)
                     try:
-                        os.symlink(fpath, link_target)
+                        os.symlink(link_target, link_file_name)
                     except FileExistsError:
                         pass
                 matched = open(home + "matched.txt", "a")
