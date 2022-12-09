@@ -2,6 +2,7 @@
 matched.txt
 watch
 config_files
+linked
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -14,14 +14,14 @@ import yaml
 yaml.warnings({'YAMLLoadWarning': False})
 
 url = ""
-watchdir = ""
-linkdir = ""
+watch_dir = ""
+link_dir = ""
 home = ""
-showdir = ""
+show_dir = ""
 
-regexroot = ""
+regex_root = ""
 
-linenum = 0
+line_num = 0
 shows = []
 auto = False
 configfile = "scheduler.yaml"
@@ -49,15 +49,15 @@ with open(home + configfile, "r") as cf:
         if not i:
             i = True
             url = doc['url']
-            watchdir = doc['watchdir']
-            linkdir = doc['linkeddir']
+            watch_dir = doc['watchdir']
+            link_dir = doc['linkeddir']
         else:
             shows.append(doc)
 
 print(shows)
-feedreq = requests.get(url)
-feedtext = feedreq.text
-feed = feedparser.parse(feedtext)
+feed_request = requests.get(url)
+feed_text = feed_request.text
+feed = feedparser.parse(feed_text)
 linklist = []
 for show in shows:
     matched = open(home + "matched.txt", "r")
@@ -77,7 +77,7 @@ for show in shows:
                 req = requests.get(torrent_url)
                 if verbose:
                     print("link from rss feed: " + torrent_url)
-                tname = home + watchdir + "/" + item["title"] + ".torrent"
+                tname = home + watch_dir + "/" + item["title"] + ".torrent"
                 if verbose:
                     print("name of downloaded torrent: " + tname)
                 torr = open(tname, "wb")
@@ -87,9 +87,9 @@ for show in shows:
                 fname = libtorrent.torrent_info(tname).files().file_name(0)  # Get name of file
                 if verbose:
                     print("name of the file in the torrent:" + fname)
-                fpath = showdir + fname  # Path of file
+                fpath = show_dir + fname  # Path of file
                 if 'sname' in show:
-                    ldir = linkdir + '/' + show['sname']  # File will be linked in here
+                    ldir = link_dir + '/' + show['sname']  # File will be linked in here
                     if not os.path.isdir(ldir):
                         os.mkdir(ldir)
                     # TODO: get rid of this and do it in another file
@@ -113,12 +113,12 @@ for show in shows:
                 matched.close()
                 log = open(home + "scheduler.log", "a")
                 try:
-                    logtitle = item["title"][int(show['tindex'][0]):int(show['tindex'][1])]
+                    log_title = item["title"][int(show['tindex'][0]):int(show['tindex'][1])]
                 except ValueError:
-                    logtitle = item["title"][int(show['tindex'][0]):]
-                logtime = datetime.now()
-                logline = logtime.strftime("%x %X") + ": " + logtitle + "\n"
+                    log_title = item["title"][int(show['tindex'][0]):]
+                log_time = datetime.now()
+                log_line = log_time.strftime("%x %X") + ": " + log_title + "\n"
                 if not auto:
-                    logline = "M " + logline
-                log.write(logline)
+                    log_line = "M " + log_line
+                log.write(log_line)
                 log.close()
