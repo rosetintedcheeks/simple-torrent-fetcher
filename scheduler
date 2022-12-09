@@ -50,7 +50,7 @@ with open(home + configfile, "r") as cf:
             i = True
             url = doc['url']
             watchdir = doc['watchdir']
-            linkdir = doc['watchdir']
+            linkdir = doc['linkeddir']
         else:
             shows.append(doc)
 
@@ -89,7 +89,7 @@ for show in shows:
                     print("name of the file in the torrent:" + fname)
                 fpath = showdir + fname  # Path of file
                 if 'sname' in show:
-                    ldir = linkdir + show['sname']  # File will be linked in here
+                    ldir = linkdir + '/' + show['sname']  # File will be linked in here
                     if not os.path.isdir(ldir):
                         os.mkdir(ldir)
                     # TODO: get rid of this and do it in another file
