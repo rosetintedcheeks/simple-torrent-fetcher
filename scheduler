@@ -122,5 +122,7 @@ for show in shows:
                 log_line = log_time.strftime("%x %X") + ": " + log_title + "\n"
                 if not auto:
                     log_line = "M " + log_line
+                if auto:
+                    print(log_line)
                 log.write(log_line)
                 log.close()
